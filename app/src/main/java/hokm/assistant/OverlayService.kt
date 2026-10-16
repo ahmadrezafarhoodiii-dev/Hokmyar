@@ -244,7 +244,7 @@ class OverlayService : Service() {
             sb.append(suit.symbol).append(' ')
             if (cards.isEmpty()) sb.append('—')
             else sb.append(cards.joinToString(" ") { it.rank.label })
-            sb.append('\\n')
+            sb.append('\n')
         }
 
         val seatLabels = arrayOf("شما", "راست", "هم‌تیمی", "چپ")
