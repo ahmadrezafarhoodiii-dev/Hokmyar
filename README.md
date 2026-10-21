@@ -1,12 +1,15 @@
-# hokm-vision (نسخه‌ی JVM برای تست و ساخت قالب‌ها)
-کامپایل: kotlinc Cards.kt HandMemory.kt Advisor.kt src/main/kotlin/hokm/vision/*.kt src/main/kotlin/hokm/game/*.kt tools/*.kt -include-runtime -d v.jar
-- ساخت قالب: java -cp v.jar BuildTemplatesKt src/test/resources/fixtures src/test/resources/samples.txt src/main/resources/templates.txt
-- ارزیابی (قالب‌ها بدون نمونه‌های همان عکس): java -cp v.jar VisionCheckKt src/test/resources/fixtures src/test/resources/samples.txt
-- تست ردیاب: java -cp v.jar TrackerCheckKt
+# حکم‌یار — کارت‌شمار (پروژه ۲)
 
+فقط شمارش: کدام برگ‌ها هنوز بازی نشده‌اند و هر بازیکن (راست، هم‌تیمی، چپ) از چه خال‌هایی خالی شده است. پیشنهاد نمی‌دهد.
 
-## نسخه کارت‌شمار
-- نام نمایشی برنامه: حکم‌یار کارت‌شمار
-- شناسه نصب مستقل: `hokm.assistant.cardtracker`
-- نسخه: `0.3-card-tracker` (versionCode 2)
-- این شناسه باعث می‌شود در صورت نصب کنار نسخه اصلی با شناسه `hokm.assistant`، به‌عنوان برنامه‌ای جدا نصب شود.
+## جدول روی صفحه
+چهار ردیف ♠ ♥ ♦ ♣ و ۱۳ خانه (A…۲): **سفید** = بازی‌نشده (دست بقیه) · **طلایی** = برگ خودم · **کم‌رنگ** = بازی شده.
+زیر جدول: خال‌های تمام‌شده‌ی راست / هم‌تیمی / چپ. اگر «⚠ N برگ ثبت‌نشده» دیدید یعنی اسکن وسط دست روشن شد یا برگی خوانده نشد و شمارش ممکن است N برگ بیشتر نشان بدهد.
+جدول در جای خالیِ بالای میز است و هیچ ناحیه‌ی اسکن را نمی‌پوشاند.
+
+## استفاده
+مثل پروژه ۱: مجوز «نمایش روی برنامه‌ها» و «آمار استفاده» (و بعد از نصب APK: App info ← ⋮ ← Allow restricted settings)، انتخاب برنامه‌ی سلطان حکم، دکمه‌ی شناور، و زدن دکمه **از اول هر دست**. دست جدید خودکار حافظه را پاک می‌کند.
+
+## ساختار
+- `app/src/main/java/hokm/engine` حافظه‌ی دست  ·  `hokm/vision` تشخیص برگ‌ها  ·  `hokm/game/CardTracker.kt` شمارش  ·  `hokm/assistant` رابط اندروید
+- تست: `kotlinc app/src/main/java/hokm/{engine,vision,game}/*.kt tools/CounterCheck.kt -include-runtime -d cc.jar && java -cp cc.jar CounterCheckKt`

@@ -63,7 +63,7 @@ class OverlayService : Service() {
 
     private lateinit var tracker: ForegroundTracker
     private lateinit var analyzer: GameAnalyzer
-    private var panel: TextView? = null
+    private var panel: CounterView? = null
     private var lastFrameAt = 0L
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -72,7 +72,7 @@ class OverlayService : Service() {
         super.onCreate()
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         tracker = ForegroundTracker(this)
-        analyzer = GameAnalyzer(this) { out -> main.post { showPanel(out) } }
+        analyzer = GameAnalyzer(this) { out -> main.post { showCounter(out) } }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -230,57 +230,33 @@ class OverlayService : Service() {
     }
 
 
-    // ───────── پنل کوچک کارت‌های باقی‌مانده ─────────
+    // ───────── جدول کارت‌شمار ─────────
 
-    private fun showPanel(out: hokm.game.TrackerOutput) {
+    /**
+     * جدول در جای خالیِ بالای میز (کنار نشان حکم، بالای برگ‌های وسط میز) نمایش داده می‌شود:
+     * مختصات مرجع ۱۱۵۹×۲۵۷۶، x از ۵۰۵ تا ۹۳۵ و y از ۳۸۸ تا ۶۱۰. هیچ‌کدام از ناحیه‌های اسکن (برگ‌های میز از y=620،
+     * آواتارها، شمارنده‌ها، دست) را نمی‌پوشاند. چون جدول در تصویر ضبط‌شده هم هست، این دوری مهم است.
+     */
+    private fun showCounter(out: hokm.game.CounterOutput) {
         if (!scanning) return
-
-        val rankOrder = hokm.engine.Rank.values().reversed()
-        val sb = StringBuilder()
-        for (suit in hokm.engine.Suit.values()) {
-            val cards = out.remainingCards
-                .filter { it.suit == suit }
-                .sortedByDescending { it.rank.ordinal }
-            sb.append(suit.symbol).append(' ')
-            if (cards.isEmpty()) sb.append('—')
-            else sb.append(cards.joinToString(" ") { it.rank.label })
-            sb.append('\n')
-        }
-
-        val seatLabels = arrayOf("شما", "راست", "هم‌تیمی", "چپ")
-        val voidNotes = out.voidsBySeat
-            .filter { (seat, suits) -> seat != 0 && suits.isNotEmpty() }
-            .map { (seat, suits) -> "${seatLabels[seat]}: " + suits.joinToString("") { it.symbol } }
-        if (voidNotes.isNotEmpty()) sb.append(voidNotes.joinToString("  ·  "))
-
-        val tv = panel ?: TextView(this).apply {
-            setTextColor(Color.WHITE)
-            textSize = 9f
-            typeface = android.graphics.Typeface.MONOSPACE
-            setPadding(7, 4, 7, 4)
-            maxLines = 5
-            ellipsize = android.text.TextUtils.TruncateAt.END
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor("#B8000000"))
-                cornerRadius = 8f * resources.displayMetrics.density
-            }
-            val m = resources.displayMetrics
+        val m = resources.displayMetrics
+        val sc = m.widthPixels / 1159f
+        val view = panel ?: CounterView(this, sc).also { v ->
             val lp = WindowManager.LayoutParams(
-                (0.92f * m.widthPixels).toInt(), WindowManager.LayoutParams.WRAP_CONTENT,
+                (430 * sc).toInt(), (222 * sc).toInt(),
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
-                x = (0.04f * m.widthPixels).toInt()
-                // نوار باریک در فاصله‌ی زیر میز و بالای دست؛ ناحیه‌ی کارت‌های بازی و دست را نمی‌پوشاند.
-                y = (0.755f * m.heightPixels).toInt()
+                x = (505 * sc).toInt()
+                y = (388 * m.heightPixels / 2576f).toInt()
             }
-            wm.addView(this, lp)
-            panel = this
+            wm.addView(v, lp)
+            panel = v
         }
-        tv.text = sb.toString().trimEnd()
+        view.update(out)
         render()
     }
 
@@ -293,13 +269,13 @@ class OverlayService : Service() {
 
     private fun goForeground(withProjection: Boolean) {
         val nm = getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel(CHANNEL, "دستیار حکم", NotificationManager.IMPORTANCE_LOW))
+        nm.createNotificationChannel(NotificationChannel(CHANNEL, "کارت‌شمار حکم", NotificationManager.IMPORTANCE_LOW))
         val stop = PendingIntent.getService(
             this, 0, Intent(this, OverlayService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val n = Notification.Builder(this, CHANNEL)
-            .setContentTitle("دستیار حکم")
+            .setContentTitle("کارت‌شمار حکم")
             .setContentText(if (withProjection) "اسکن روشن است" else "دکمه‌ی شناور فعال؛ اسکن خاموش")
             .setSmallIcon(android.R.drawable.ic_menu_view)
             .setOngoing(true)

@@ -6,11 +6,11 @@ android {
     namespace = "hokm.assistant"
     compileSdk = 35
     defaultConfig {
-        applicationId = "hokm.assistant.cardtracker"
+        applicationId = "hokm.cardcounter"
         minSdk = 30
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.3-card-tracker"
+        versionCode = 1
+        versionName = "1.0-counter"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

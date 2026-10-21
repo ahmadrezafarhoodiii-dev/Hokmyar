@@ -21,7 +21,9 @@ data class ScanResult(
     val turnText: Boolean,
     val presence: Set<Int> = emptySet(),
     /** صندلی‌ای که الان نوبتش است (آواتارش سبز می‌شود): ۰ من، ۱ راست، ۲ بالا، ۳ چپ. */
-    val activeSeat: Int? = null
+    val activeSeat: Int? = null,
+    /** دست در همین فریم (یا چند فریم اخیر با رأی‌گیری) تازه خوانده شده، نه از حافظه‌ی نهان. */
+    val handFresh: Boolean = false
 ) {
     val tricksSeen get() = tricksRight + tricksBottom
     val anyDimmed get() = hand.any { it.dimmed }
@@ -31,7 +33,7 @@ class CardRecognizer(private val tpl: Templates) {
 
     companion object {
         val HAND_REGION = Rect(0, 2060, 1159, 2576)   // برگی که انگشت بالا کشیده از ۲۱۰۰ هم بالاتر می‌آید
-        val TABLE_REGION = Rect(200, 560, 960, 1520)
+        val TABLE_REGION = Rect(200, 620, 960, 1520)
         val TRUMP_BOX = Rect(105, 395, 235, 505)
         private val RANK_KEYS = Rank.values().associateBy { it.label }
         fun suitOf(c: Char) = when (c) { 'S' -> Suit.SPADES; 'H' -> Suit.HEARTS; 'D' -> Suit.DIAMONDS; else -> Suit.CLUBS }

@@ -34,7 +34,7 @@ class MainActivity : Activity() {
         val pad = (16 * resources.displayMetrics.density).toInt()
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(pad, pad * 2, pad, pad) }
 
-        root.addView(TextView(this).apply { text = "دستیار حکم"; textSize = 22f; gravity = Gravity.CENTER })
+        root.addView(TextView(this).apply { text = "کارت‌شمار حکم"; textSize = 22f; gravity = Gravity.CENTER })
         status = TextView(this); root.addView(status)
         root.addView(Button(this).apply {
             text = "۱) اجازه‌ی نمایش روی برنامه‌ها"

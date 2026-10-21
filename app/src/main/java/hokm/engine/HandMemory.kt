@@ -18,6 +18,8 @@ class HandMemory(val mySeat: Int = 0) {
     /** رگ جاری به ترتیب بازی: صندلی ← برگ (null = بازی شده ولی خوانده نشده). */
     private val _cur = LinkedHashMap<Int, Card?>()
     private val _voids = Array(4) { mutableSetOf<Suit>() }
+    /** برگ‌هایی که روی میز دیده شدند ولی (به‌خاطر ناسازگاری ترتیب نوبت) در رگ ثبت نشدند؛ برای شمارش باز هم «بازی‌شده» حساب می‌شوند. */
+    private val _seenExtra = mutableSetOf<Card>()
     private val _teamTricks = IntArray(2)
     private var baseTricks = 0
     private var lenient = false
@@ -53,13 +55,34 @@ class HandMemory(val mySeat: Int = 0) {
         if (_myCards.size < expectedMyHandSize) _myCards.add(card)
     }
 
+    /** دست من بیشتر از تعداد مورد انتظار است (برگی بازی شده ولی ثبت نشده): برگ‌هایی که در خواندن تازه دیده نشدند کنار گذاشته می‌شوند. */
+    fun trimMyCards(read: Collection<Card>) {
+        val extra = _myCards.size - expectedMyHandSize
+        if (extra <= 0) return
+        val gone = _myCards.filter { it !in read }.take(extra)
+        _myCards.removeAll(gone.toSet())
+        _seenExtra.addAll(gone)            // برگی که دیگر در دستم نیست، بازی شده است
+    }
+
     /** شمارنده‌های رگ از روی صفحه؛ منبع قابل‌اعتمادتر از محاسبه‌ی خودمان. */
     fun syncTeamTricks(myTeamTricks: Int, otherTeamTricks: Int) {
         _teamTricks[teamOf(mySeat)] = myTeamTricks; _teamTricks[1 - teamOf(mySeat)] = otherTeamTricks
     }
 
     /** برگ‌هایی که نه در دست من‌اند و نه بازی شده‌اند: یعنی دست بقیه. */
-    fun unknownCards(): List<Card> = Card.FULL_DECK.filter { it !in _myCards && it !in _played }
+    fun unknownCards(): List<Card> = Card.FULL_DECK.filter { it !in _myCards && it !in _played && it !in _seenExtra }
+
+    /** همه‌ی برگ‌هایی که تا الان بازی شده‌اند (ثبت‌شده در رگ‌ها + دیده‌شده روی میز). */
+    val allPlayed: Set<Card> get() = _played + _seenExtra
+
+    /** برگ روی میز دیده شد؛ حتی اگر ترتیب نوبت ناسازگار است، برای شمارش بازی‌شده حساب می‌شود. */
+    fun noteSeenCard(card: Card) {
+        if (card in _played || card in _myCards) return
+        _seenExtra.add(card)
+    }
+
+    /** تعداد برگ‌هایی که باید بازی شده باشند ولی ثبت نشده‌اند (مثلاً اسکن دیر روشن شد یا برگی خوانده نشد). */
+    val unrecordedPlays: Int get() = (4 * tricksCompleted + _cur.size - allPlayed.size).coerceAtLeast(0)
 
     /** تعداد برگ‌های باقی‌مانده‌ی هر صندلی. */
     fun handSize(seat: Int): Int {
@@ -71,7 +94,7 @@ class HandMemory(val mySeat: Int = 0) {
         this.trump = trump
         currentLeader = leader
         _myCards.clear(); _myCards.addAll(myCards)
-        _played.clear(); _tricks.clear(); _cur.clear()
+        _played.clear(); _tricks.clear(); _cur.clear(); _seenExtra.clear()
         _voids.forEach { it.clear() }
         _teamTricks.fill(0)
         baseTricks = 0; lenient = false
@@ -94,10 +117,28 @@ class HandMemory(val mySeat: Int = 0) {
         baseTricks = tricksCompleted; lenient = true
     }
 
+    /** (برای تست) مجموعه‌ای از برگ‌های بازی‌شده‌ی دست را بدون ترتیب ثبت می‌کند تا حافظه‌ی «کامل» شبیه‌سازی شود. */
+    fun markPlayedForTest(cards: Collection<Card>) { _played.addAll(cards) }
+
     /** وقتی رگ جدید هنوز شروع نشده، نفر شروع‌کننده را اصلاح می‌کند. */
     fun setLeader(seat: Int) {
         check(_cur.isEmpty()) { "وسط رگ نمی‌شود شروع‌کننده را عوض کرد" }
         currentLeader = seat
+    }
+
+    /**
+     * فقط رگ جاری را فراموش می‌کند (تاریخچه‌ی رگ‌های قبلی و برگ‌های بازی‌شده‌ی آن‌ها حفظ می‌شود).
+     * وقتی حافظه با صفحه هماهنگ نیست، به‌جای پاک کردن کل دست از این استفاده می‌شود.
+     */
+    fun resetCurrentTrick() {
+        for ((seat, card) in _cur) if (card != null) { _played.remove(card); if (seat == mySeat) _myCards.add(card) }
+        _cur.clear()
+    }
+
+    /** دست من وقتی کامل (به اندازه‌ی مورد انتظار) و تازه خوانده شد، جایگزین حدس‌های قبلی می‌شود. */
+    fun setMyCards(cards: Collection<Card>) {
+        val fresh = cards.filter { it !in _played }.toSet()
+        if (fresh.size == expectedMyHandSize) { _myCards.clear(); _myCards.addAll(fresh) }
     }
 
     /** شمارنده‌ی صفحه از حافظه جلوتر است (رگ‌هایی را ندیدیم): رگ‌های جاری را کنار می‌گذارد. */

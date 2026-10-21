@@ -19,7 +19,7 @@
     </queries>
 
     <application
-        android:label="حکم‌یار کارت‌شمار"
+        android:label="کارت‌شمار حکم"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar">
 
